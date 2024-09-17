@@ -1,0 +1,26 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-08-01/tenantDeploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "prefix": {
+            "type": "string",
+            "metadata": {
+                "description": "Prefix for resource names"
+            }
+        }
+    },
+    "variables": {
+        "groupName": "[parameters('prefix')]"
+    },
+    "resources": [
+        {
+            "name": "[variables('groupName')]",
+            "type": "Microsoft.Management/managementGroups",
+            "apiVersion": "2021-04-01",
+            "properties": {
+                "displayName": "[variables('groupName')]",
+                "parentId": "/"
+            }
+        }
+    ]
+}

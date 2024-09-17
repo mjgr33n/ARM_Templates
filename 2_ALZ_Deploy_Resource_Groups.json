@@ -1,0 +1,41 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2018-05-01/subscriptionDeploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "prefix": {
+            "type": "string",
+            "metadata": {
+                "description": "Prefix for resource group names"
+            }
+        },
+        "locale": {
+            "type": "string",
+            "metadata": {
+                "description": "Locale for resource group names"
+            }
+        },
+        "ResourceGroupParameters": {
+            "type": "array",
+            "metadata": {
+                "description": "Array of resource groups with their environment and type"
+            }
+        }
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Resources/resourceGroups",
+            "apiVersion": "2021-04-01",
+            "location": "UK South",
+            "name": "[concat(parameters('prefix'), '-rg-', parameters('locale'), '-', parameters('ResourceGroupParameters')[copyIndex()].name)]",
+            "copy": {
+                "name": "resourceGroupCopy",
+                "count": "[length(parameters('ResourceGroupParameters'))]"
+            },
+            "tags": {
+                "Environment": "[parameters('ResourceGroupParameters')[copyIndex()].environment]",
+                "Type": "[parameters('ResourceGroupParameters')[copyIndex()].type]"
+            },
+            "properties": {}
+        }
+    ]
+}

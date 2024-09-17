@@ -1,0 +1,72 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2018-05-01/subscriptionDeploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "prefix": {
+      "type": "string"
+    },
+    "environments": {
+      "type": "array",
+      "defaultValue": [
+        "prodvd",
+        "prodvm",
+        "prodid",
+        "testvm"
+      ]
+    },
+    "resourceGroupNames": {
+      "type": "object"
+    },
+    "vnetNames": {
+      "type": "object"
+    },
+    "subnetNames": {
+      "type": "object"
+    },
+    "addressPrefixes": {
+      "type": "object"
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2020-10-01",
+      "name": "[concat('nestedDeployment', parameters('environments')[copyIndex()])]",
+      "resourceGroup": "[concat(parameters('prefix'), '-', parameters('resourceGroupNames')[parameters('environments')[copyIndex()]])]",
+      "copy": {
+        "name": "deploymentLoop",
+        "count": "[length(parameters('environments'))]"
+      },
+      "properties": {
+        "mode": "Incremental",
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "resources": [
+            {
+              "type": "Microsoft.Network/virtualNetworks",
+              "apiVersion": "2020-06-01",
+              "name": "[concat(parameters('prefix'), '-', parameters('vnetNames')[parameters('environments')[copyIndex()]])]",
+              "location": "uksouth",
+              "properties": {
+                "addressSpace": {
+                  "addressPrefixes": [
+                    "[parameters('addressPrefixes')[parameters('environments')[copyIndex()]]]"
+                  ]
+                },
+                "subnets": [
+                  {
+                    "name": "[parameters('subnetNames')[parameters('environments')[copyIndex()]]]",
+                    "properties": {
+                      "addressPrefix": "[parameters('addressPrefixes')[parameters('environments')[copyIndex()]]]"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

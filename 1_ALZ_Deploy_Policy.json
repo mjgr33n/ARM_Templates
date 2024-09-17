@@ -1,0 +1,58 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-08-01/managementGroupDeploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "managementGroupName": {
+      "type": "string",
+      "metadata": {
+        "description": "Name of the management group"
+      }
+    },
+    "location": {
+      "type": "string",
+      "metadata": {
+        "description": "Location for the policy assignment"
+      }
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Authorization/policyAssignments",
+      "apiVersion": "2020-03-01",
+      "name": "inherit-env-tag",
+      "location": "[parameters('location')]",
+      "identity": {
+        "type": "SystemAssigned"
+      },
+      "properties": {
+        "displayName": "Inherit Environment Tag from Resource Group",
+        "policyDefinitionId": "/providers/Microsoft.Authorization/policyDefinitions/ea3f2387-9b95-492a-a190-fcdc54f7b070",
+        "scope": "[concat('/providers/Microsoft.Management/managementGroups/', parameters('managementGroupName'))]",
+        "parameters": {
+          "tagName": {
+            "value": "Environment"
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Authorization/policyAssignments",
+      "apiVersion": "2020-03-01",
+      "name": "inherit-type-tag",
+      "location": "[parameters('location')]",
+      "identity": {
+        "type": "SystemAssigned"
+      },
+      "properties": {
+        "displayName": "Inherit Type Tag from Resource Group",
+        "policyDefinitionId": "/providers/Microsoft.Authorization/policyDefinitions/ea3f2387-9b95-492a-a190-fcdc54f7b070",
+        "scope": "[concat('/providers/Microsoft.Management/managementGroups/', parameters('managementGroupName'))]",
+        "parameters": {
+          "tagName": {
+            "value": "Type"
+          }
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,118 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "prefix": {
+      "type": "string"
+    },
+    "vmConfigurations": {
+      "type": "array"
+    },
+    "adminPassword": {
+      "type": "securestring"
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Network/networkInterfaces",
+      "apiVersion": "2022-01-01",
+      "name": "[concat(parameters('prefix'), '-', parameters('vmConfigurations')[copyIndex()].vmName, '-nic')]",
+      "location": "[resourceGroup().location]",
+      "copy": {
+        "name": "networkInterfaceCopy",
+        "count": "[length(parameters('vmConfigurations'))]"
+      },
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "subnet": {
+                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', concat(parameters('prefix'), '-', parameters('vmConfigurations')[copyIndex()].virtualNetworkName), parameters('vmConfigurations')[copyIndex()].subnetName)]"
+              },
+              "privateIPAllocationMethod": "[if(contains(parameters('vmConfigurations')[copyIndex()], 'privateIPAddress'), 'Static', 'Dynamic')]",
+              "privateIPAddress": "[if(contains(parameters('vmConfigurations')[copyIndex()], 'privateIPAddress'), parameters('vmConfigurations')[copyIndex()].privateIPAddress, json('null'))]"
+            }
+          }
+        ],
+        "enableAcceleratedNetworking": "[parameters('vmConfigurations')[copyIndex()].enableAcceleratedNetworking]"
+      }
+    },
+    {
+      "type": "Microsoft.Compute/disks",
+      "apiVersion": "2023-04-02",
+      "name": "[concat(parameters('prefix'), '-', parameters('vmConfigurations')[copyIndex()].vmName, '-dataDisk')]",
+      "location": "[resourceGroup().location]",
+      "copy": {
+        "name": "diskCopy",
+        "count": "[length(parameters('vmConfigurations'))]"
+      },
+      "sku": {
+        "name": "[parameters('vmConfigurations')[copyIndex()].dataDiskSku]"
+      },
+      "properties": {
+        "diskSizeGB": "[parameters('vmConfigurations')[copyIndex()].dataDiskSizeGB]",
+        "creationData": {
+          "createOption": "Empty"
+        }
+      },
+      "zones": "[if(contains(parameters('vmConfigurations')[copyIndex()], 'availabilityZone'), array(parameters('vmConfigurations')[copyIndex()].availabilityZone), json('null'))]"
+    },
+    {
+      "type": "Microsoft.Compute/virtualMachines",
+      "apiVersion": "2022-03-01",
+      "name": "[concat(parameters('prefix'), '-', parameters('vmConfigurations')[copyIndex()].vmName)]",
+      "location": "[resourceGroup().location]",
+      "copy": {
+        "name": "vmCopy",
+        "count": "[length(parameters('vmConfigurations'))]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/networkInterfaces', concat(parameters('prefix'), '-', parameters('vmConfigurations')[copyIndex()].vmName, '-nic'))]",
+        "[resourceId('Microsoft.Compute/disks', concat(parameters('prefix'), '-', parameters('vmConfigurations')[copyIndex()].vmName, '-dataDisk'))]"
+      ],
+      "properties": {
+        "hardwareProfile": {
+          "vmSize": "[parameters('vmConfigurations')[copyIndex()].vmSize]"
+        },
+        "storageProfile": {
+          "imageReference": {
+            "publisher": "[parameters('vmConfigurations')[copyIndex()].publisher]",
+            "offer": "[parameters('vmConfigurations')[copyIndex()].offer]",
+            "sku": "[parameters('vmConfigurations')[copyIndex()].sku]",
+            "version": "[parameters('vmConfigurations')[copyIndex()].version]"
+          },
+          "osDisk": {
+            "createOption": "FromImage",
+            "managedDisk": {
+              "storageAccountType": "StandardSSD_LRS"
+            }
+          },
+          "dataDisks": [
+            {
+              "lun": 0,
+              "name": "[concat(parameters('prefix'), '-', parameters('vmConfigurations')[copyIndex()].vmName, '-dataDisk')]",
+              "createOption": "Attach",
+              "managedDisk": {
+                "id": "[resourceId('Microsoft.Compute/disks', concat(parameters('prefix'), '-', parameters('vmConfigurations')[copyIndex()].vmName, '-dataDisk'))]"
+              }
+            }
+          ]
+        },
+        "osProfile": {
+          "computerName": "[concat(parameters('prefix'), '-', parameters('vmConfigurations')[copyIndex()].vmName)]",
+          "adminUsername": "[parameters('vmConfigurations')[copyIndex()].adminUsername]",
+          "adminPassword": "[parameters('adminPassword')]"
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces', concat(parameters('prefix'), '-', parameters('vmConfigurations')[copyIndex()].vmName, '-nic'))]"
+            }
+          ]
+        }
+      },
+      "zones": "[if(contains(parameters('vmConfigurations')[copyIndex()], 'availabilityZone'), array(parameters('vmConfigurations')[copyIndex()].availabilityZone), json('null'))]"
+    }
+  ]
+}
